@@ -88,7 +88,7 @@ class MutateTest {
   }
 
   @Test
-  fun `test mutate when withLock in progress`() = runTest {
+  fun `test mutate when effect in progress`() = runTest {
     val mutator = Mutator()
     val list = mutableListOf<String>()
 

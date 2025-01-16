@@ -12,16 +12,16 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class WithLockTest {
+class EffectTest {
   @Test
-  fun `test withLock success`() = runTest {
+  fun `test effect success`() = runTest {
     Mutator().effect { "1" }.also { result ->
       assertEquals("1", result)
     }
   }
 
   @Test
-  fun `test withLock error`() = runTest {
+  fun `test effect error`() = runTest {
     runCatching {
       Mutator().effect { error("error") }
     }.also { result ->
@@ -30,7 +30,7 @@ class WithLockTest {
   }
 
   @Test
-  fun `test withLock CancellationException in block`() = runTest {
+  fun `test effect CancellationException in block`() = runTest {
     launch {
       Mutator().effect { throw CancellationException() }
     }.also { job ->
@@ -52,7 +52,7 @@ class WithLockTest {
   }
 
   @Test
-  fun `test cancelMutate when withLock in progress`() = runTest {
+  fun `test cancelMutate when effect in progress`() = runTest {
     val mutator = Mutator()
     val list = mutableListOf<String>()
 
@@ -76,7 +76,7 @@ class WithLockTest {
   }
 
   @Test
-  fun `test withLock when withLock in progress`() = runTest {
+  fun `test effect when effect in progress`() = runTest {
     val mutator = Mutator()
     val list = mutableListOf<String>()
 
@@ -96,7 +96,7 @@ class WithLockTest {
   }
 
   @Test
-  fun `test withLock when mutate in progress`() = runTest {
+  fun `test effect when mutate in progress`() = runTest {
     val mutator = Mutator()
     val list = mutableListOf<String>()
 

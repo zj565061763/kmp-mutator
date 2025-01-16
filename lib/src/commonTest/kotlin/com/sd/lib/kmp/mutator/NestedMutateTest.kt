@@ -24,7 +24,7 @@ class NestedMutateTest {
   }
 
   @Test
-  fun `test withLock in withLock block`() = runTest {
+  fun `test effect in effect block`() = runTest {
     val mutator = Mutator()
     val list = mutableListOf<String>()
 
@@ -42,7 +42,7 @@ class NestedMutateTest {
   }
 
   @Test
-  fun `test mutate in withLock block`() = runTest {
+  fun `test mutate in effect block`() = runTest {
     val mutator = Mutator()
     val list = mutableListOf<String>()
 
@@ -60,7 +60,7 @@ class NestedMutateTest {
   }
 
   @Test
-  fun `test withLock in mutate block`() = runTest {
+  fun `test effect in mutate block`() = runTest {
     val mutator = Mutator()
     val list = mutableListOf<String>()
 
