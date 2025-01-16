@@ -52,6 +52,18 @@ class MutateTest {
   }
 
   @Test
+  fun `test mutate cancelMutate in block`() = runTest {
+    val mutator = Mutator()
+    launch {
+      mutator.mutate { mutator.cancelMutate() }
+    }.also { job ->
+      advanceUntilIdle()
+      assertEquals(true, job.isCancelled)
+      assertEquals(true, job.isCompleted)
+    }
+  }
+
+  @Test
   fun `test cancelMutate when mutate in progress`() = runTest {
     val mutator = Mutator()
 

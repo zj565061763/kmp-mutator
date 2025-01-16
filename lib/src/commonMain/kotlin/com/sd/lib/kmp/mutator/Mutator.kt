@@ -12,26 +12,33 @@ import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 
 interface Mutator {
-  /** [mutate]是否正在修改中 */
+  /**
+   * [mutate]是否正在修改中
+   */
   suspend fun isMutating(): Boolean
 
   /**
-   * 互斥修改，如果协程A正在修改，则协程B调用此方法时会先取消协程A，然后再执行[block]，
-   * [block]总是串行，不会并发
+   * 互斥修改，如果协程A正在修改，则协程B调用此方法时会先取消协程A，再执行[block]，
+   * 如果[effect]的block正在执行则此方法会挂起直到它结束，[block]总是串行，不会并发
+   *
+   * 注意：[block]中嵌套调用[mutate]或者[effect]会抛异常
    */
   suspend fun <T> mutate(block: suspend MutateScope.() -> T): T
 
   /**
-   * 尝试执行[block]，如果[mutate]的block正在执行则此方法会挂起直到它结束，
-   * [block]总是串行，不会并发
+   * 执行[block]，如果[mutate]的block正在执行则此方法会挂起直到它结束，[block]总是串行，不会并发
+   *
+   * 注意：[block]中嵌套调用[mutate]或者[effect]会抛异常
    */
   suspend fun <T> effect(block: suspend () -> T): T
 
-  /** 取消正在执行的[mutate]修改，[effect]修改不会被取消 */
+  /**
+   * 取消正在执行的[mutate]修改，[effect]修改不会被取消
+   */
   suspend fun cancelMutate()
 
   interface MutateScope {
-    /** 确保[mutate]的协程处于激活状态，否则抛出取消异常 */
+    /** 确保[mutate]协程处于激活状态，否则抛出取消异常 */
     suspend fun ensureMutateActive()
   }
 }
@@ -61,7 +68,7 @@ private class MutatorImpl : Mutator {
       }
 
       try {
-        doMutate {
+        doMutate(MutateType.Mutate) {
           with(newMutateScope(mutateContext)) { block() }
         }
       } finally {
@@ -71,7 +78,8 @@ private class MutatorImpl : Mutator {
   }
 
   override suspend fun <T> effect(block: suspend () -> T): T {
-    return doMutate(block)
+    checkNestedMutate()
+    return doMutate(MutateType.Effect, block)
   }
 
   override suspend fun cancelMutate() {
@@ -80,19 +88,21 @@ private class MutatorImpl : Mutator {
     }
   }
 
-  private suspend fun <T> doMutate(block: suspend () -> T): T {
-    checkNestedMutate()
+  private suspend fun <T> doMutate(
+    type: MutateType,
+    block: suspend () -> T,
+  ): T {
     return _mutateMutex.withLock {
-      withContext(MutateElement(tag = this@MutatorImpl)) {
+      withContext(MutateElement(type = type, mutator = this@MutatorImpl)) {
         block()
       }
     }
   }
 
-  /** 释放Job，不一定会成功，因为当前协程可能已经被取消 */
-  private suspend fun releaseJob(job: Job) {
-    _jobMutex.withLock {
+  private fun releaseJob(job: Job) {
+    if (_jobMutex.tryLock()) {
       if (_job === job) _job = null
+      _jobMutex.unlock()
     }
   }
 
@@ -106,12 +116,21 @@ private class MutatorImpl : Mutator {
   }
 
   private suspend fun checkNestedMutate() {
-    if (currentCoroutineContext()[MutateElement]?.tag === this@MutatorImpl) {
-      error("Nested mutate")
+    val element = currentCoroutineContext()[MutateElement]
+    if (element?.mutator === this@MutatorImpl) {
+      error("Already in ${element.type}")
     }
   }
 
-  private class MutateElement(val tag: Mutator) : AbstractCoroutineContextElement(MutateElement) {
+  private class MutateElement(
+    val type: MutateType,
+    val mutator: Mutator,
+  ) : AbstractCoroutineContextElement(MutateElement) {
     companion object Key : CoroutineContext.Key<MutateElement>
+  }
+
+  private enum class MutateType {
+    Mutate,
+    Effect,
   }
 }
