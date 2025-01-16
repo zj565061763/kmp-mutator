@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalCoroutinesApi::class)
-
 package com.sd.lib.kmp.mutator
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -13,6 +11,7 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class MutateTest {
   @Test
   fun `test mutate success`() = runTest {
