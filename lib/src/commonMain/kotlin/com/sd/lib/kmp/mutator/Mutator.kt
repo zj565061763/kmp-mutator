@@ -25,7 +25,7 @@ interface Mutator {
    * 尝试执行[block]，如果[mutate]的block正在执行则此方法会挂起直到它结束，
    * [block]总是串行，不会并发
    */
-  suspend fun <T> withLock(block: suspend () -> T): T
+  suspend fun <T> effect(block: suspend () -> T): T
 
   /** 取消正在执行的[mutate]修改 */
   suspend fun cancelMutate()
@@ -61,7 +61,7 @@ private class MutatorImpl : Mutator {
       }
 
       try {
-        withLock {
+        doMutate {
           with(newMutateScope(mutateContext)) { block() }
         }
       } finally {
@@ -70,18 +70,22 @@ private class MutatorImpl : Mutator {
     }
   }
 
-  override suspend fun <T> withLock(block: suspend () -> T): T {
-    checkNestedMutate()
-    return _mutateMutex.withLock {
-      withContext(MutateElement(tag = this@MutatorImpl)) {
-        block()
-      }
-    }
+  override suspend fun <T> effect(block: suspend () -> T): T {
+    return doMutate(block)
   }
 
   override suspend fun cancelMutate() {
     _jobMutex.withLock {
       _job?.cancelAndJoin()
+    }
+  }
+
+  private suspend fun <T> doMutate(block: suspend () -> T): T {
+    checkNestedMutate()
+    return _mutateMutex.withLock {
+      withContext(MutateElement(tag = this@MutatorImpl)) {
+        block()
+      }
     }
   }
 

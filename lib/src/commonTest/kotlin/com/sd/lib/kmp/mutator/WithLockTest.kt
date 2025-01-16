@@ -15,7 +15,7 @@ import kotlin.test.assertEquals
 class WithLockTest {
   @Test
   fun `test withLock success`() = runTest {
-    Mutator().withLock { "1" }.also { result ->
+    Mutator().effect { "1" }.also { result ->
       assertEquals("1", result)
     }
   }
@@ -23,7 +23,7 @@ class WithLockTest {
   @Test
   fun `test withLock error`() = runTest {
     runCatching {
-      Mutator().withLock { error("error") }
+      Mutator().effect { error("error") }
     }.also { result ->
       assertEquals("error", result.exceptionOrNull()!!.message)
     }
@@ -32,7 +32,7 @@ class WithLockTest {
   @Test
   fun `test withLock CancellationException in block`() = runTest {
     launch {
-      Mutator().withLock { throw CancellationException() }
+      Mutator().effect { throw CancellationException() }
     }.also { job ->
       advanceUntilIdle()
       assertEquals(true, job.isCancelled)
@@ -43,7 +43,7 @@ class WithLockTest {
   @Test
   fun `test mutate cancel in block`() = runTest {
     launch {
-      Mutator().withLock { cancel() }
+      Mutator().effect { cancel() }
     }.also { job ->
       advanceUntilIdle()
       assertEquals(true, job.isCancelled)
@@ -57,7 +57,7 @@ class WithLockTest {
     val list = mutableListOf<String>()
 
     val job = launch {
-      mutator.withLock {
+      mutator.effect {
         delay(5_000)
         list.add("1")
       }
@@ -81,7 +81,7 @@ class WithLockTest {
     val list = mutableListOf<String>()
 
     val job = launch {
-      mutator.withLock {
+      mutator.effect {
         delay(5_000)
         list.add("1")
       }
@@ -89,7 +89,7 @@ class WithLockTest {
       runCurrent()
     }
 
-    mutator.withLock { list.add("2") }
+    mutator.effect { list.add("2") }
     assertEquals(false, job.isCancelled)
     assertEquals(true, job.isCompleted)
     assertEquals(listOf("1", "2"), list)
@@ -109,7 +109,7 @@ class WithLockTest {
       runCurrent()
     }
 
-    mutator.withLock { list.add("2") }
+    mutator.effect { list.add("2") }
     assertEquals(false, job.isCancelled)
     assertEquals(true, job.isCompleted)
     assertEquals(listOf("1", "2"), list)

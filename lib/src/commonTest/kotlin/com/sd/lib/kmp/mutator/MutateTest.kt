@@ -93,7 +93,7 @@ class MutateTest {
     val list = mutableListOf<String>()
 
     val job = launch {
-      mutator.withLock {
+      mutator.effect {
         delay(5_000)
         list.add("1")
       }

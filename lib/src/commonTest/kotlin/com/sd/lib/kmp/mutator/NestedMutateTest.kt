@@ -28,9 +28,9 @@ class NestedMutateTest {
     val mutator = Mutator()
     val list = mutableListOf<String>()
 
-    mutator.withLock {
+    mutator.effect {
       runCatching {
-        mutator.withLock { }
+        mutator.effect { }
       }.also {
         assertEquals("Nested mutate", it.exceptionOrNull()!!.message)
         list.add("1")
@@ -46,7 +46,7 @@ class NestedMutateTest {
     val mutator = Mutator()
     val list = mutableListOf<String>()
 
-    mutator.withLock {
+    mutator.effect {
       runCatching {
         mutator.mutate { }
       }.also {
@@ -66,7 +66,7 @@ class NestedMutateTest {
 
     mutator.mutate {
       runCatching {
-        mutator.withLock { }
+        mutator.effect { }
       }.also {
         assertEquals("Nested mutate", it.exceptionOrNull()!!.message)
         list.add("1")
