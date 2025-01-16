@@ -12,7 +12,7 @@ import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 
 interface Mutator {
-  /** [mutate]是否正在执行修改中 */
+  /** [mutate]是否正在修改中 */
   suspend fun isMutating(): Boolean
 
   /**
@@ -27,7 +27,7 @@ interface Mutator {
    */
   suspend fun <T> effect(block: suspend () -> T): T
 
-  /** 取消正在执行的[mutate]修改 */
+  /** 取消正在执行的[mutate]修改，[effect]修改不会被取消 */
   suspend fun cancelMutate()
 
   interface MutateScope {
