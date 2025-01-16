@@ -21,7 +21,6 @@ kmp-kotlinx-serialization-json = "org.jetbrains.kotlinx:kotlinx-serialization-js
 
 kmp-kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kmp-kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kmp-coroutines" }
-kmp-cash-turbine = "app.cash.turbine:turbine:1.2.0"
 
 kmp-kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kmp-coroutines" }
 

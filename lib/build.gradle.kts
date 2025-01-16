@@ -34,7 +34,6 @@ kotlin {
     commonTest.dependencies {
       implementation(libs.kmp.kotlin.test)
       implementation(libs.kmp.kotlinx.coroutines.test)
-      implementation(libs.kmp.cash.turbine)
     }
   }
 }
