@@ -1,4 +1,4 @@
-package com.sd.demo.kmp.mutator.navigation
+package com.sd.demo.kmp.mutator
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize

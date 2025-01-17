@@ -1,4 +1,4 @@
-package com.sd.demo.kmp.mutator.navigation
+package com.sd.demo.kmp.mutator
 
 import kotlinx.serialization.Serializable
 
