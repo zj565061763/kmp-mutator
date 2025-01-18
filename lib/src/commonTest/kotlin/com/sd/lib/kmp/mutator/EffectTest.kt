@@ -41,7 +41,7 @@ class EffectTest {
   }
 
   @Test
-  fun `test mutate cancel in block`() = runTest {
+  fun `test effect cancel in block`() = runTest {
     launch {
       Mutator().effect { cancel() }
     }.also { job ->
