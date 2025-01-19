@@ -19,7 +19,7 @@ class Mutator {
 
   suspend fun <R> mutate(block: suspend MutateScope.() -> R): R {
     checkNested()
-    return mutateInternal(
+    return mutate(
       onStart = {},
       block = block,
     )
@@ -27,7 +27,7 @@ class Mutator {
 
   suspend fun <T> tryMutate(block: suspend MutateScope.() -> T): T {
     checkNested()
-    return mutateInternal(
+    return mutate(
       onStart = { if (_job?.isActive == true) throw CancellationException() },
       block = block,
     )
@@ -44,7 +44,7 @@ class Mutator {
     }
   }
 
-  private suspend fun <R> mutateInternal(
+  private suspend fun <R> mutate(
     onStart: () -> Unit,
     block: suspend MutateScope.() -> R,
   ): R {
