@@ -10,104 +10,77 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.cancellation.CancellationException
 
-interface Mutator {
-  /**
-   * [mutate]是否正在修改中
-   */
-  suspend fun isMutating(): Boolean
-
-  /**
-   * 互斥修改，如果协程A正在修改，则协程B调用此方法时会先取消协程A，再执行[block]，
-   * 如果[effect]的block正在执行则此方法会挂起直到它结束，[block]总是串行，不会并发
-   *
-   * 注意：[block]中嵌套调用[mutate]或者[effect]会抛异常
-   */
-  suspend fun <T> mutate(block: suspend MutateScope.() -> T): T
-
-  /**
-   * 执行[block]，如果[mutate]的block正在执行则此方法会挂起直到它结束，[block]总是串行，不会并发
-   *
-   * 注意：[block]中嵌套调用[mutate]或者[effect]会抛异常
-   */
-  suspend fun <T> effect(block: suspend () -> T): T
-
-  /**
-   * 取消正在执行的[mutate]修改，[effect]修改不会被取消
-   */
-  suspend fun cancelMutate()
-
-  interface MutateScope {
-    /** 确保[mutate]协程处于激活状态，否则抛出取消异常 */
-    suspend fun ensureMutateActive()
-  }
-}
-
-fun Mutator(): Mutator = MutatorImpl()
-
-private class MutatorImpl : Mutator {
+class Mutator {
   private var _job: Job? = null
   private val _jobMutex = Mutex()
   private val _mutateMutex = Mutex()
 
-  override suspend fun isMutating(): Boolean {
-    return _jobMutex.withLock {
-      _job?.isActive == true
-    }
+  suspend fun <R> mutate(block: suspend MutateScope.() -> R): R {
+    checkNested()
+    return mutateInternal(
+      onStart = {},
+      block = block,
+    )
   }
 
-  override suspend fun <R> mutate(block: suspend Mutator.MutateScope.() -> R): R {
-    checkNestedMutate()
-    return coroutineScope {
-      val mutateContext = coroutineContext
-      val mutateJob = checkNotNull(mutateContext[Job])
-
-      _jobMutex.withLock {
-        _job?.cancelAndJoin()
-        _job = mutateJob
-      }
-
-      try {
-        doMutate(MutateType.Mutate) {
-          with(newMutateScope(mutateContext)) { block() }
-        }
-      } finally {
-        releaseJob(mutateJob)
-      }
-    }
+  suspend fun <T> tryMutate(block: suspend MutateScope.() -> T): T {
+    checkNested()
+    return mutateInternal(
+      onStart = { if (_job?.isActive == true) throw CancellationException() },
+      block = block,
+    )
   }
 
-  override suspend fun <T> effect(block: suspend () -> T): T {
-    checkNestedMutate()
-    return doMutate(MutateType.Effect, block)
+  suspend fun <T> effect(block: suspend () -> T): T {
+    checkNested()
+    return doMutate(block)
   }
 
-  override suspend fun cancelMutate() {
+  suspend fun cancelMutate() {
     _jobMutex.withLock {
       _job?.cancelAndJoin()
     }
   }
 
-  private suspend fun <T> doMutate(
-    type: MutateType,
-    block: suspend () -> T,
-  ): T {
+  private suspend fun <R> mutateInternal(
+    onStart: () -> Unit,
+    block: suspend MutateScope.() -> R,
+  ): R {
+    return coroutineScope {
+      val mutateContext = coroutineContext
+      val mutateJob = checkNotNull(mutateContext[Job])
+
+      _jobMutex.withLock {
+        onStart()
+        _job?.cancelAndJoin()
+        _job = mutateJob
+      }
+
+      try {
+        doMutate {
+          with(newMutateScope(mutateContext)) { block() }
+        }
+      } finally {
+        if (_jobMutex.tryLock()) {
+          if (_job === mutateJob) _job = null
+          _jobMutex.unlock()
+        }
+      }
+    }
+  }
+
+  private suspend fun <T> doMutate(block: suspend () -> T): T {
     return _mutateMutex.withLock {
-      withContext(MutateElement(type = type, mutator = this@MutatorImpl)) {
+      withContext(MutateElement(mutator = this@Mutator)) {
         block()
       }
     }
   }
 
-  private fun releaseJob(job: Job) {
-    if (_jobMutex.tryLock()) {
-      if (_job === job) _job = null
-      _jobMutex.unlock()
-    }
-  }
-
-  private fun newMutateScope(mutateContext: CoroutineContext): Mutator.MutateScope {
-    return object : Mutator.MutateScope {
+  private fun newMutateScope(mutateContext: CoroutineContext): MutateScope {
+    return object : MutateScope {
       override suspend fun ensureMutateActive() {
         currentCoroutineContext().ensureActive()
         mutateContext.ensureActive()
@@ -115,22 +88,16 @@ private class MutatorImpl : Mutator {
     }
   }
 
-  private suspend fun checkNestedMutate() {
+  private suspend fun checkNested() {
     val element = currentCoroutineContext()[MutateElement]
-    if (element?.mutator === this@MutatorImpl) {
-      error("Already in ${element.type}")
-    }
+    if (element?.mutator === this@Mutator) error("Nested invoke")
   }
 
-  private class MutateElement(
-    val type: MutateType,
-    val mutator: Mutator,
-  ) : AbstractCoroutineContextElement(MutateElement) {
+  private class MutateElement(val mutator: Mutator) : AbstractCoroutineContextElement(MutateElement) {
     companion object Key : CoroutineContext.Key<MutateElement>
   }
 
-  private enum class MutateType {
-    Mutate,
-    Effect,
+  interface MutateScope {
+    suspend fun ensureMutateActive()
   }
 }

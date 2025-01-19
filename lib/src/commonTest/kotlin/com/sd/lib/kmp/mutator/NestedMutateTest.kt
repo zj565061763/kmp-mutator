@@ -14,7 +14,7 @@ class NestedMutateTest {
       runCatching {
         mutator.mutate { }
       }.also {
-        assertEquals("Already in Mutate", it.exceptionOrNull()!!.message)
+        assertEquals("Nested invoke", it.exceptionOrNull()!!.message)
         list.add("1")
       }
       list.add("2")
@@ -32,7 +32,7 @@ class NestedMutateTest {
       runCatching {
         mutator.effect { }
       }.also {
-        assertEquals("Already in Effect", it.exceptionOrNull()!!.message)
+        assertEquals("Nested invoke", it.exceptionOrNull()!!.message)
         list.add("1")
       }
       list.add("2")
@@ -50,7 +50,7 @@ class NestedMutateTest {
       runCatching {
         mutator.mutate { }
       }.also {
-        assertEquals("Already in Effect", it.exceptionOrNull()!!.message)
+        assertEquals("Nested invoke", it.exceptionOrNull()!!.message)
         list.add("1")
       }
       list.add("2")
@@ -68,7 +68,7 @@ class NestedMutateTest {
       runCatching {
         mutator.effect { }
       }.also {
-        assertEquals("Already in Mutate", it.exceptionOrNull()!!.message)
+        assertEquals("Nested invoke", it.exceptionOrNull()!!.message)
         list.add("1")
       }
       list.add("2")

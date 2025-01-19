@@ -71,12 +71,10 @@ class MutateTest {
       mutator.mutate { delay(Long.MAX_VALUE) }
     }.also {
       runCurrent()
-      assertEquals(true, mutator.isMutating())
     }
 
     mutator.cancelMutate()
 
-    assertEquals(false, mutator.isMutating())
     assertEquals(true, job.isCancelled)
     assertEquals(true, job.isCompleted)
   }
@@ -89,12 +87,10 @@ class MutateTest {
       mutator.mutate { delay(Long.MAX_VALUE) }
     }.also {
       runCurrent()
-      assertEquals(true, mutator.isMutating())
     }
 
     mutator.mutate { }
 
-    assertEquals(false, mutator.isMutating())
     assertEquals(true, job.isCancelled)
     assertEquals(true, job.isCompleted)
   }
