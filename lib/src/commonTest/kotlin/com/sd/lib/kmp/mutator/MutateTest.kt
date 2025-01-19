@@ -64,6 +64,27 @@ class MutateTest {
   }
 
   @Test
+  fun `test tryMutate`() = runTest {
+    val mutator = Mutator()
+    launch {
+      mutator.mutate { delay(5_000) }
+    }.also {
+      runCurrent()
+    }
+
+    launch {
+      runCatching {
+        mutator.tryMutate { }
+      }.also {
+        assertEquals(true, it.exceptionOrNull() is CancellationException)
+      }
+    }
+
+    advanceUntilIdle()
+    mutator.tryMutate { }
+  }
+
+  @Test
   fun `test cancelMutate when mutate in progress`() = runTest {
     val mutator = Mutator()
 
