@@ -41,6 +41,7 @@ class Mutator {
   suspend fun cancelMutate() {
     _jobMutex.withLock {
       _job?.cancelAndJoin()
+      _job = null
     }
   }
 
