@@ -56,17 +56,11 @@ class Mutator {
         onStart()
         _job?.cancelAndJoin()
         _job = mutateJob
+        mutateJob.invokeOnCompletion { releaseJob(mutateJob) }
       }
 
-      try {
-        doMutate {
-          with(newMutateScope(mutateContext)) { block() }
-        }
-      } finally {
-        if (_jobMutex.tryLock()) {
-          if (_job === mutateJob) _job = null
-          _jobMutex.unlock()
-        }
+      doMutate {
+        with(newMutateScope(mutateContext)) { block() }
       }
     }
   }
@@ -76,6 +70,13 @@ class Mutator {
       withContext(MutateElement(mutator = this@Mutator)) {
         block()
       }
+    }
+  }
+
+  private fun releaseJob(job: Job) {
+    if (_jobMutex.tryLock()) {
+      if (_job === job) _job = null
+      _jobMutex.unlock()
     }
   }
 
