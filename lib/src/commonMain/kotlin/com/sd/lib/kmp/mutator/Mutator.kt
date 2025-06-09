@@ -25,7 +25,7 @@ class Mutator {
     )
   }
 
-  suspend fun <T> tryMutate(block: suspend MutateScope.() -> T): T {
+  suspend fun <T> mutateOrThrowCancellation(block: suspend MutateScope.() -> T): T {
     checkNested()
     return mutate(
       onStart = { if (_job?.isActive == true) throw CancellationException() },

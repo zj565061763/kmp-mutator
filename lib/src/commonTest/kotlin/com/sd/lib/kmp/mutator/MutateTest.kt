@@ -64,7 +64,7 @@ class MutateTest {
   }
 
   @Test
-  fun `test tryMutate`() = runTest {
+  fun `test mutateOrThrowCancellation`() = runTest {
     val mutator = Mutator()
     launch {
       mutator.mutate { delay(5_000) }
@@ -74,14 +74,14 @@ class MutateTest {
 
     launch {
       runCatching {
-        mutator.tryMutate { }
+        mutator.mutateOrThrowCancellation { }
       }.also {
         assertEquals(true, it.exceptionOrNull() is CancellationException)
       }
     }
 
     advanceUntilIdle()
-    mutator.tryMutate { }
+    mutator.mutateOrThrowCancellation { }
   }
 
   @Test
