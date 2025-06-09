@@ -7,5 +7,5 @@ Kotlin Multiplatform Mutex Operation library.
 # Gradle
 
 ```kotlin
-implementation("io.github.zj565061763.kmp:mutator:1.1.2")
+implementation("io.github.zj565061763.kmp:mutator:1.2.0")
 ```
