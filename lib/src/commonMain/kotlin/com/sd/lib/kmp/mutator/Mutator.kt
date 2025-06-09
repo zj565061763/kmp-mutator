@@ -17,7 +17,7 @@ class Mutator {
   private val _jobMutex = Mutex()
   private val _mutateMutex = Mutex()
 
-  suspend fun <R> mutate(block: suspend MutateScope.() -> R): R {
+  suspend fun <T> mutate(block: suspend MutateScope.() -> T): T {
     checkNested()
     return mutate(
       onStart = {},
